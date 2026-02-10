@@ -1,0 +1,485 @@
+/* --- VEHICLES --- */
+.car-layer {
+    position: absolute; width: 100%; height: 100%;
+    pointer-events: none; z-index: 5; /* Above roads, below lights */
+}
+
+.car {
+    position: absolute;
+    width: 24px; height: 12px;
+    background: #fff;
+    border-radius: 2px;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    /* Smooth lane changing visual */
+    transition: left 0.2s linear, top 0.2s linear, transform 0.1s; 
+    z-index: 10;
+}
+
+/* Headlights (Pseudo-elements) */
+.car::after {
+    content: ''; position: absolute; top: 0; right: -4px; 
+    width: 4px; height: 100%; 
+    background: rgba(200, 200, 255, 0.8);
+    box-shadow: 2px 0 10px rgba(200, 200, 255, 1);
+}
+
+/* Brake Lights (Active when class .stopped is added) */
+.car.stopped::before {
+    content: ''; position: absolute; top: 0; left: -2px;
+    width: 2px; height: 100%;
+    background: #ff0000;
+    box-shadow: -2px 0 10px #ff0000;
+}
+
+/* Rotation classes for directions */
+.car.north { transform: rotate(90deg); background: #00d2ff; } /* Blue Team */
+.car.south { transform: rotate(-90deg); background: #00d2ff; }
+.car.east { transform: rotate(0deg); background: #ff0055; }   /* Red Team */
+.car.west { transform: rotate(180deg); background: #ff0055; }
+
+/* style.css - Titan HUD v3.5 */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
+
+:root {
+    --bg-deep: #030305;
+    --bg-panel: rgba(10, 10, 12, 0.75);
+    --glass-border: 1px solid rgba(255, 255, 255, 0.08);
+    --neon-blue: #00f0ff;
+    --neon-green: #0aff60;
+    --neon-red: #ff2a2a;
+    --neon-yellow: #ffcc00;
+    --road-color: #151518;
+    --footpath-color: #2a2a30;
+    --pedestrian-color: #00d2ff;
+    --font-ui: 'Inter', sans-serif;
+    --font-code: 'JetBrains Mono', monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    background-color: var(--bg-deep);
+    background-image: 
+        radial-gradient(circle at 50% 0%, #1a1a2e 0%, transparent 60%),
+        linear-gradient(0deg, rgba(0,0,0,0.2) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,0.2) 1px, transparent 1px);
+    background-size: 100% 100%, 40px 40px, 40px 40px;
+    color: #fff;
+    font-family: var(--font-ui);
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+}
+
+/* --- SIDEBAR --- */
+.sidebar-nav {
+    width: 280px;
+    background: rgba(5, 5, 8, 0.95);
+    border-right: var(--glass-border);
+    padding: 30px 20px;
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+}
+
+.brand {
+    font-family: var(--font-code);
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--neon-blue);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 50px;
+    text-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 16px;
+    color: #666;
+    text-decoration: none;
+    font-family: var(--font-code);
+    font-size: 0.85rem;
+    border-left: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.nav-link:hover { color: #fff; background: rgba(255,255,255,0.02); }
+.nav-link.active { 
+    color: var(--neon-blue); 
+    border-left: 2px solid var(--neon-blue);
+    background: linear-gradient(90deg, rgba(0, 240, 255, 0.1), transparent);
+}
+
+/* --- MAIN LAYOUT --- */
+.main-content {
+    flex: 1;
+    padding: 30px;
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 30px;
+    position: relative;
+}
+
+.hud-panel {
+    background: var(--bg-panel);
+    backdrop-filter: blur(20px);
+    border: var(--glass-border);
+    border-radius: 4px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.hud-panel::before {
+    content: ''; position: absolute; top: -1px; left: -1px; width: 20px; height: 20px;
+    border-top: 2px solid var(--neon-blue); border-left: 2px solid var(--neon-blue);
+    opacity: 0.5;
+}
+.hud-panel::after {
+    content: ''; position: absolute; bottom: -1px; right: -1px; width: 20px; height: 20px;
+    border-bottom: 2px solid var(--neon-blue); border-right: 2px solid var(--neon-blue);
+    opacity: 0.5;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.panel-title {
+    font-family: var(--font-code);
+    font-size: 0.7rem;
+    letter-spacing: 1.5px;
+    color: #888;
+    text-transform: uppercase;
+}
+
+/* --- SIMULATION VIEWPORT --- */
+.sim-viewport {
+    flex-grow: 1;
+    background: #08080a;
+    background-image: 
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+    position: relative;
+    border: 1px solid #222;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* NEW ROAD GEOMETRY */
+.road-layer {
+    position: absolute; width: 100%; height: 100%;
+    display: flex; justify-content: center; align-items: center;
+}
+
+/* The Central Junction Square */
+.crossing-box {
+    width: 140px; height: 140px;
+    background: var(--road-color);
+    border: 2px solid #333;
+    z-index: 1; /* Sits above road arms */
+}
+
+/* The Four Road Arms */
+.road-arm {
+    position: absolute; background: var(--road-color);
+    display: flex; justify-content: space-between; /* For footpaths */
+}
+.r-north { width: 140px; height: calc(50% - 70px); top: 0; flex-direction: row; border-left: 2px solid #333; border-right: 2px solid #333; }
+.r-south { width: 140px; height: calc(50% - 70px); bottom: 0; flex-direction: row; border-left: 2px solid #333; border-right: 2px solid #333; }
+.r-east { height: 140px; width: calc(50% - 70px); right: 0; flex-direction: column; border-top: 2px solid #333; border-bottom: 2px solid #333; }
+.r-west { height: 140px; width: calc(50% - 70px); left: 0; flex-direction: column; border-top: 2px solid #333; border-bottom: 2px solid #333; }
+
+/* Dashed Lines on Arms */
+.r-north::after, .r-south::after {
+    content: ''; position: absolute; left: 50%; height: 100%; width: 2px;
+    background: repeating-linear-gradient(0deg, #555 0, #555 20px, transparent 20px, transparent 40px);
+}
+.r-east::after, .r-west::after {
+    content: ''; position: absolute; top: 50%; width: 100%; height: 2px;
+    background: repeating-linear-gradient(90deg, #555 0, #555 20px, transparent 20px, transparent 40px);
+}
+
+/* FOOTPATHS & PEDESTRIANS */
+.footpath {
+    background: var(--footpath-color);
+    display: flex; align-items: center; justify-content: space-around;
+}
+/* Vertical Roads have side paths */
+.r-north .footpath, .r-south .footpath { width: 30px; height: 100%; flex-direction: column; }
+/* Horizontal Roads have top/bottom paths */
+.r-east .footpath, .r-west .footpath { height: 30px; width: 100%; flex-direction: row; }
+
+.pedestrian {
+    width: 8px; height: 8px; background: var(--pedestrian-color); border-radius: 50%;
+    box-shadow: 0 0 8px var(--pedestrian-color);
+}
+
+/* TRAFFIC LIGHT HOUSINGS */
+.intersection-anchor {
+    width: 160px; height: 160px; position: relative; pointer-events: none; z-index: 20;
+}
+.light-housing {
+    position: absolute; background: #000; border: 1px solid #333; padding: 6px;
+    border-radius: 6px; display: flex; gap: 6px; box-shadow: 0 0 10px rgba(0,0,0,0.8);
+}
+.lh-north { top: -50px; left: -40px; flex-direction: column; }
+.lh-south { bottom: -50px; right: -40px; flex-direction: column; }
+.lh-east { top: -40px; right: -50px; flex-direction: row-reverse; }
+.lh-west { bottom: -40px; left: -50px; flex-direction: row-reverse; }
+
+.bulb { width: 14px; height: 14px; background: #222; border-radius: 50%; border: 1px solid #333; transition: 0.2s; }
+.bulb.red.active { background: var(--neon-red); box-shadow: 0 0 15px var(--neon-red); border-color: #fff; }
+.bulb.yellow.active { background: var(--neon-yellow); box-shadow: 0 0 15px var(--neon-yellow); border-color: #fff; }
+.bulb.green.active { background: var(--neon-green); box-shadow: 0 0 15px var(--neon-green); border-color: #fff; }
+
+/* --- METRICS & TYPOGRAPHY --- */
+.metric-row { display: flex; justify-content: space-between; margin-bottom: 16px; font-family: var(--font-code); font-size: 0.9rem; border-bottom: 1px dashed #333; padding-bottom: 8px; }
+.metric-value { font-weight: 700; text-shadow: 0 0 10px rgba(255,255,255,0.1); }
+.val-green { color: var(--neon-green); }
+.val-red { color: var(--neon-red); }
+.val-blue { color: var(--neon-blue); }
+
+.btn { 
+    background: transparent; border: 1px solid var(--neon-blue); color: var(--neon-blue);
+    padding: 10px 20px; font-family: var(--font-code); font-size: 0.8rem; letter-spacing: 1px;
+    cursor: pointer; transition: 0.2s; text-transform: uppercase;
+}
+.btn:hover { background: var(--neon-blue); color: #000; box-shadow: 0 0 20px var(--neon-blue); }
+.btn-secondary { border-color: #555; color: #888; }
+.btn-secondary:hover { border-color: #fff; color: #fff; background: transparent; box-shadow: none; }
+
+.queue-box {
+    position: absolute; top: 20px; left: 20px;
+    background: rgba(0,0,0,0.8); border: 1px solid #333;
+    padding: 15px; font-family: var(--font-code); font-size: 0.8rem;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5); z-index: 30;
+}
+
+/* --- SIGNAL INDEX BADGES --- */
+.signal-badge {
+    position: absolute;
+    width: 24px; height: 24px;
+    background: #000;
+    border: 1px solid var(--neon-blue);
+    color: var(--neon-blue);
+    border-radius: 4px;
+    font-family: var(--font-code);
+    font-size: 0.7rem;
+    font-weight: 700;
+    display: flex; justify-content: center; align-items: center;
+    z-index: 25;
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+}
+
+/* Positioning badges next to housings */
+.sb-north { top: -80px; left: -40px; }
+.sb-south { bottom: -80px; right: -40px; }
+.sb-east  { right: -80px; top: -40px; }
+.sb-west  { left: -80px; bottom: -40px; }
+
+/* Sidebar compact inputs */
+.input-group {
+    background: rgba(255,255,255,0.03);
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.05);
+    margin-bottom: 12px;
+}
+.input-label {
+    display: flex; justify-content: space-between;
+    font-size: 0.75rem; color: #888; margin-bottom: 8px;
+    font-family: var(--font-code);
+}
+
+/* --- MANUAL SIDEBAR CONTROLLERS --- */
+.control-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background 0.2s;
+}
+.control-card:hover { background: rgba(255,255,255,0.05); }
+
+.manual-light-housing {
+    background: #000;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 4px;
+    display: flex;
+    gap: 4px;
+    /* Horizontal layout for sidebar compactness */
+}
+
+.manual-bulb {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: #222;
+    border: 1px solid #444;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.manual-bulb:hover { transform: scale(1.1); border-color: #fff; }
+
+/* Active States for Sidebar Buttons */
+.manual-bulb.red.active { background: var(--neon-red); box-shadow: 0 0 10px var(--neon-red); }
+.manual-bulb.yellow.active { background: var(--neon-yellow); box-shadow: 0 0 10px var(--neon-yellow); }
+.manual-bulb.green.active { background: var(--neon-green); box-shadow: 0 0 10px var(--neon-green); }
+
+.sig-label {
+    font-family: var(--font-code);
+    font-weight: 700;
+    color: var(--neon-blue);
+    font-size: 1.1rem;
+}
+
+/* --- CRASH FX --- */
+.crash-marker {
+    position: absolute;
+    font-size: 30px;
+    z-index: 50;
+    animation: shake 0.5s ease-in-out;
+    pointer-events: none;
+    transform: translate(-50%, -50%); /* Center on impact */
+}
+
+@keyframes shake {
+    0% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.5) rotate(20deg); }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+}
+
+/* Wrecked Car Style */
+.car.wrecked {
+    background: #444 !important;
+    box-shadow: none;
+    border: 1px dashed #fff;
+    filter: grayscale(100%);
+    z-index: 1;
+}
+.car.wrecked::after { display: none; } /* No headlights */
+
+/* --- MICRO INPUTS --- */
+.config-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    padding-top: 8px;
+}
+
+.input-box {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.input-label {
+    font-size: 0.65rem;
+    color: #888;
+    text-transform: uppercase;
+    font-family: var(--font-code);
+}
+
+.micro-input {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid #333;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: var(--font-code);
+    font-size: 0.8rem;
+    width: 100%;
+    transition: border 0.2s;
+}
+
+.micro-input:focus {
+    outline: none;
+    border-color: var(--neon-blue);
+    background: rgba(0, 240, 255, 0.05);
+}
+
+/* Color coding inputs */
+.inp-green:focus { border-color: var(--neon-green); }
+.inp-red:focus { border-color: var(--neon-red); }
+
+/* --- MODE TOGGLE SWITCH --- */
+.mode-toggle-container {
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+}
+
+.switch input { opacity: 0; width: 0; height: 0; }
+
+.slider-round {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #333;
+    transition: .4s;
+    border-radius: 34px;
+    border: 1px solid #555;
+}
+
+.slider-round:before {
+    position: absolute;
+    content: "";
+    height: 16px; width: 16px;
+    left: 3px; bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider-round { background-color: var(--neon-green); border-color: var(--neon-green); }
+input:checked + .slider-round:before { transform: translateX(20px); }
+
+/* --- DISABLED STATES --- */
+/* When in Manual mode, inputs are dimmed */
+.inputs-disabled {
+    opacity: 0.3;
+    pointer-events: none;
+    filter: grayscale(1);
+}
+
+/* When in Auto mode, bulbs are not clickable */
+.bulbs-locked {
+    pointer-events: none;
+    cursor: default;
+}
+.bulbs-locked .manual-bulb { cursor: default; }
